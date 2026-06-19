@@ -18,6 +18,40 @@ Hospital readmissions within 30 days are costly, often preventable, and signal i
 > *"Which patients, at the point of discharge, are most likely to return within 30 days — and why?"*
 
 ---
+## 📸 Application Screenshots
+
+### 🏠 Home Page – Clinical Overview
+
+#### Overview & KPIs
+
+![Home Overview](screenshots/home-overview.png)
+
+#### Analytics & Model Performance
+
+![Home Analytics](screenshots/home-analytics.png)
+
+---
+
+### 🔮 Risk Prediction Engine
+
+Predicts 30-day readmission probability and assigns a clinical risk tier.
+
+![Prediction](screenshots/predict-high-risk.png)
+
+---
+
+### 📊 Analytics Dashboard
+
+#### Population-Level Metrics
+
+![Dashboard Overview](screenshots/dashboard-overview.png)
+
+#### Clinical Insights & Risk Segmentation
+
+![Dashboard Insights](screenshots/dashboard-insights.png)
+
+---
+
 
 ## 🚀 Live Demo
 
