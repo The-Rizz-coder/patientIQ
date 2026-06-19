@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+*.pkl
+*.egg-info/
+.env
+venv/
+.vscode/
+data/diabetic_data.csv
+data/diabetic_data_cleaned.csv
+data/diabetic_data_processed.csv
+data/diabetic_data_clustered.csv
+outputs/

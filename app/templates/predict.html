@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>PatientIQ — Risk Prediction</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+</head>
+<body>
+
+<!-- ── Sidebar ── -->
+<aside class="sidebar">
+  <div class="sidebar-brand">
+    <div class="brand-icon">🏥</div>
+    <h1>PatientIQ</h1>
+    <p>Clinical Intelligence Platform</p>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">Navigation</div>
+    <a href="/" class="nav-item"><span class="nav-icon">🏠</span> Overview</a>
+    <a href="/predict" class="nav-item active"><span class="nav-icon">🔬</span> Risk Prediction</a>
+    <a href="/dashboard" class="nav-item"><span class="nav-icon">📊</span> Analytics Dashboard</a>
+    <div class="nav-section-label">Dataset</div>
+    <a href="#" class="nav-item"><span class="nav-icon">🗃️</span> UCI Diabetes 130-US</a>
+    <a href="#" class="nav-item"><span class="nav-icon">⚙️</span> Model Info</a>
+  </nav>
+  <div class="sidebar-footer">
+    <p>PatientIQ v1.0 · Built with Flask</p>
+  </div>
+</aside>
+
+<!-- ── Main ── -->
+<main class="main">
+  <div class="topbar">
+    <div class="topbar-title">
+      <h2>Patient Risk Prediction</h2>
+      <p>Enter patient clinical data to predict 30-day readmission risk</p>
+    </div>
+    <div class="topbar-badge">
+      <span class="status-dot"></span> XGBoost + RF Ensemble
+    </div>
+  </div>
+
+  <div class="content">
+    <div class="grid-3-1" style="align-items:start;">
+
+      <!-- ── LEFT: Form ── -->
+      <div>
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Patient Clinical Profile</div>
+              <div class="card-subtitle">Fill in patient data at time of discharge</div>
+            </div>
+          </div>
+
+          <form id="predictForm">
+
+            <!-- Demographics -->
+            <div class="form-section">
+              <div class="form-section-title">Demographics</div>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label class="form-label">Age</label>
+                  <input type="number" name="age_numeric" class="form-control" value="65" min="1" max="99"/>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Gender</label>
+                  <select name="gender" class="form-control">
+                    <option value="Female">Female</option>
+                    <option value="Male">Male</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Race</label>
+                  <select name="race" class="form-control">
+                    <option value="Caucasian">Caucasian</option>
+                    <option value="AfricanAmerican">African American</option>
+                    <option value="Hispanic">Hispanic</option>
+                    <option value="Asian">Asian</option>
+                    <option value="Other">Other</option>
+                    <option value="Unknown">Unknown</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <!-- Admission Info -->
+            <div class="form-section">
+              <div class="form-section-title">Admission Details</div>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label class="form-label">Time in Hospital (days)</label>
+                  <input type="number" name="time_in_hospital" class="form-control" value="4" min="1" max="14"/>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Admission Type</label>
+                  <select name="admission_type_id" class="form-control">
+                    <option value="1">Emergency</option>
+                    <option value="2">Urgent</option>
+                    <option value="3">Elective</option>
+                    <option value="6">NULL</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Discharge Disposition</label>
+                  <select name="discharge_disposition_id" class="form-control">
+                    <option value="1">Discharged to Home</option>
+                    <option value="3">SNF</option>
+                    <option value="6">Home Health Care</option>
+                    <option value="11">Expired</option>
+                    <option value="18">Unknown</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Admission Source</label>
+                  <select name="admission_source_id" class="form-control">
+                    <option value="7">Emergency Room</option>
+                    <option value="1">Physician Referral</option>
+                    <option value="2">Clinic Referral</option>
+                    <option value="4">Transfer from Hospital</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Number of Diagnoses</label>
+                  <input type="number" name="number_diagnoses" class="form-control" value="5" min="1" max="16"/>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Number of Procedures</label>
+                  <input type="number" name="num_procedures" class="form-control" value="1" min="0" max="6"/>
+                </div>
+              </div>
+            </div>
+
+            <!-- Lab & Medications -->
+            <div class="form-section">
+              <div class="form-section-title">Lab & Medications</div>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label class="form-label">Lab Procedures</label>
+                  <input type="number" name="num_lab_procedures" class="form-control" value="40" min="1" max="132"/>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Num Medications</label>
+                  <input type="number" name="num_medications" class="form-control" value="15" min="1" max="81"/>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Diabetes Medication</label>
+                  <select name="diabetesMed" class="form-control">
+                    <option value="Yes">Yes</option>
+                    <option value="No">No</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Medication Changed</label>
+                  <select name="change" class="form-control">
+                    <option value="Ch">Yes — Changed</option>
+                    <option value="No">No Change</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Insulin</label>
+                  <select name="insulin" class="form-control">
+                    <option value="No">No</option>
+                    <option value="Steady">Steady</option>
+                    <option value="Up">Up</option>
+                    <option value="Down">Down</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Metformin</label>
+                  <select name="metformin" class="form-control">
+                    <option value="No">No</option>
+                    <option value="Steady">Steady</option>
+                    <option value="Up">Up</option>
+                    <option value="Down">Down</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <!-- Prior Visits -->
+            <div class="form-section">
+              <div class="form-section-title">Prior Hospital Utilization</div>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label class="form-label">Prior Inpatient Visits</label>
+                  <input type="number" name="number_inpatient" class="form-control" value="0" min="0" max="21"/>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Prior Emergency Visits</label>
+                  <input type="number" name="number_emergency" class="form-control" value="0" min="0" max="76"/>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Prior Outpatient Visits</label>
+                  <input type="number" name="number_outpatient" class="form-control" value="0" min="0" max="42"/>
+                </div>
+              </div>
+            </div>
+
+            <!-- Diagnosis Groups -->
+            <div class="form-section">
+              <div class="form-section-title">Diagnosis Groups</div>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label class="form-label">Primary Diagnosis</label>
+                  <select name="diag_1_group" class="form-control">
+                    <option value="Diabetes">Diabetes</option>
+                    <option value="Circulatory">Circulatory</option>
+                    <option value="Respiratory">Respiratory</option>
+                    <option value="Digestive">Digestive</option>
+                    <option value="Injury">Injury</option>
+                    <option value="Musculoskeletal">Musculoskeletal</option>
+                    <option value="Genitourinary">Genitourinary</option>
+                    <option value="Neoplasms">Neoplasms</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Secondary Diagnosis</label>
+                  <select name="diag_2_group" class="form-control">
+                    <option value="Other">Other</option>
+                    <option value="Diabetes">Diabetes</option>
+                    <option value="Circulatory">Circulatory</option>
+                    <option value="Respiratory">Respiratory</option>
+                    <option value="Digestive">Digestive</option>
+                    <option value="Injury">Injury</option>
+                    <option value="Musculoskeletal">Musculoskeletal</option>
+                    <option value="Genitourinary">Genitourinary</option>
+                    <option value="Neoplasms">Neoplasms</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Tertiary Diagnosis</label>
+                  <select name="diag_3_group" class="form-control">
+                    <option value="Other">Other</option>
+                    <option value="Diabetes">Diabetes</option>
+                    <option value="Circulatory">Circulatory</option>
+                    <option value="Respiratory">Respiratory</option>
+                    <option value="Digestive">Digestive</option>
+                    <option value="Injury">Injury</option>
+                    <option value="Musculoskeletal">Musculoskeletal</option>
+                    <option value="Genitourinary">Genitourinary</option>
+                    <option value="Neoplasms">Neoplasms</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <!-- Hidden medication fields with defaults -->
+            <input type="hidden" name="repaglinide" value="No"/>
+            <input type="hidden" name="nateglinide" value="No"/>
+            <input type="hidden" name="chlorpropamide" value="No"/>
+            <input type="hidden" name="glimepiride" value="No"/>
+            <input type="hidden" name="glipizide" value="No"/>
+            <input type="hidden" name="glyburide" value="No"/>
+            <input type="hidden" name="tolbutamide" value="No"/>
+            <input type="hidden" name="pioglitazone" value="No"/>
+            <input type="hidden" name="rosiglitazone" value="No"/>
+            <input type="hidden" name="acarbose" value="No"/>
+            <input type="hidden" name="miglitol" value="No"/>
+            <input type="hidden" name="troglitazone" value="No"/>
+            <input type="hidden" name="tolazamide" value="No"/>
+            <input type="hidden" name="glyburide-metformin" value="No"/>
+            <input type="hidden" name="glipizide-metformin" value="No"/>
+
+            <button type="submit" class="btn btn-primary btn-lg" id="submitBtn" style="width:100%;justify-content:center;">
+              <span id="btnText">🔬 Analyze Patient Risk</span>
+              <div class="spinner" id="spinner"></div>
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <!-- ── RIGHT: Results ── -->
+      <div>
+
+        <!-- Placeholder -->
+        <div id="placeholder" class="card text-center" style="padding:40px 20px;">
+          <div style="font-size:48px;margin-bottom:16px;">🏥</div>
+          <div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:8px;">Ready to Analyze</div>
+          <div class="text-muted">Fill in the patient form and click Analyze to get the readmission risk score and clinical tier.</div>
+        </div>
+
+        <!-- Results -->
+        <div id="resultPanel" class="result-panel">
+
+          <!-- Risk Score Card -->
+          <div class="card mb-16">
+            <div class="card-header">
+              <div class="card-title">🎯 Readmission Risk Score</div>
+              <span id="riskBadge" class="badge badge-lg"></span>
+            </div>
+            <div class="gauge-container">
+              <div class="gauge-wrap">
+                <canvas id="gaugeChart"></canvas>
+                <div class="gauge-value">
+                  <div class="gauge-pct" id="gaugePct">--</div>
+                  <div class="gauge-label">Risk Probability</div>
+                </div>
+              </div>
+            </div>
+            <hr class="divider"/>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;text-align:center;">
+              <div>
+                <div style="font-size:18px;font-weight:800;color:var(--primary)" id="xgbProb">--</div>
+                <div class="text-muted">XGBoost</div>
+              </div>
+              <div>
+                <div style="font-size:18px;font-weight:800;color:var(--info)" id="rfProb">--</div>
+                <div class="text-muted">Random Forest</div>
+              </div>
+              <div>
+                <div style="font-size:18px;font-weight:800;" id="riskScore">--</div>
+                <div class="text-muted">Risk Score</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Risk Tier -->
+          <div class="card mb-16">
+            <div class="card-header">
+              <div class="card-title">🔵 Clinical Risk Tier</div>
+            </div>
+            <div id="tierDisplay" style="text-align:center;padding:16px 0;">
+              <div id="tierValue" style="font-size:28px;font-weight:800;"></div>
+              <div id="tierDesc" class="text-muted mt-8" style="font-size:13px;"></div>
+            </div>
+          </div>
+
+          <!-- Risk Drivers -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">⚡ Key Risk Drivers</div>
+              <div class="card-subtitle">Factors contributing to readmission risk</div>
+            </div>
+            <table class="drivers-table" id="driversTable">
+              <thead>
+                <tr>
+                  <th>Risk Factor</th>
+                  <th>Value</th>
+                  <th>Impact</th>
+                </tr>
+              </thead>
+              <tbody id="driversBody"></tbody>
+            </table>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+let gaugeChart = null;
+
+function buildGauge(pct) {
+  const ctx = document.getElementById('gaugeChart').getContext('2d');
+  if (gaugeChart) gaugeChart.destroy();
+
+  const color = pct < 10 ? '#10b981' : pct < 20 ? '#f59e0b' : '#ef4444';
+
+  gaugeChart = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      datasets: [{
+        data: [pct, 100 - pct],
+        backgroundColor: [color, '#f1f5f9'],
+        borderWidth: 0,
+        circumference: 180,
+        rotation: 270,
+      }]
+    },
+    options: {
+      responsive: false,
+      cutout: '75%',
+      plugins: { legend: { display: false }, tooltip: { enabled: false } }
+    }
+  });
+}
+
+document.getElementById('predictForm').addEventListener('submit', async function(e) {
+  e.preventDefault();
+
+  const btn     = document.getElementById('submitBtn');
+  const btnText = document.getElementById('btnText');
+  const spinner = document.getElementById('spinner');
+
+  btn.disabled      = true;
+  btnText.textContent = 'Analyzing...';
+  spinner.style.display = 'block';
+
+  const formData = new FormData(this);
+
+  try {
+    const res  = await fetch('/predict', { method: 'POST', body: formData });
+    const data = await res.json();
+
+    if (!data.success) throw new Error(data.error);
+
+    // Show result panel
+    document.getElementById('placeholder').style.display  = 'none';
+    document.getElementById('resultPanel').classList.add('show');
+
+    // Gauge
+    buildGauge(data.probability);
+    document.getElementById('gaugePct').textContent = data.probability + '%';
+
+    // Badge
+    const badge = document.getElementById('riskBadge');
+    const colorMap = { success: 'badge-success', warning: 'badge-warning', danger: 'badge-danger' };
+    badge.className = `badge badge-lg ${colorMap[data.risk_color]}`;
+    badge.textContent = data.risk_label;
+
+    // Model probs
+    document.getElementById('xgbProb').textContent  = data.xgb_prob + '%';
+    document.getElementById('rfProb').textContent   = data.rf_prob + '%';
+    document.getElementById('riskScore').textContent = data.risk_score;
+
+    // Tier
+    const tierColors = { 'Low Risk': '#059669', 'Medium Risk': '#d97706', 'High Risk': '#dc2626' };
+    const tierDescs  = {
+      'Low Risk':    'Patient has low probability of readmission. Standard discharge protocol recommended.',
+      'Medium Risk': 'Patient has moderate readmission risk. Follow-up appointment within 2 weeks advised.',
+      'High Risk':   'Patient is at high risk of readmission. Intensive follow-up and care coordination required.'
+    };
+    document.getElementById('tierValue').textContent  = data.risk_tier;
+    document.getElementById('tierValue').style.color  = tierColors[data.risk_tier] || '#64748b';
+    document.getElementById('tierDesc').textContent   = tierDescs[data.risk_tier] || '';
+
+    // Drivers
+    const tbody = document.getElementById('driversBody');
+    tbody.innerHTML = '';
+    data.drivers.forEach(d => {
+      const impactClass = { High: 'badge-danger', Medium: 'badge-warning', Low: 'badge-success' }[d.impact] || 'badge-info';
+      tbody.innerHTML += `
+        <tr>
+          <td style="font-weight:500">${d.factor}</td>
+          <td>${d.value}</td>
+          <td><span class="badge ${impactClass}">${d.impact}</span></td>
+        </tr>`;
+    });
+
+  } catch (err) {
+    alert('Prediction error: ' + err.message);
+  } finally {
+    btn.disabled = false;
+    btnText.textContent = '🔬 Analyze Patient Risk';
+    spinner.style.display = 'none';
+  }
+});
+</script>
+</body>
+</html>

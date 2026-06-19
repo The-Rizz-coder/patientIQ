@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>PatientIQ — Analytics Dashboard</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+</head>
+<body>
+
+<!-- ── Sidebar ── -->
+<aside class="sidebar">
+  <div class="sidebar-brand">
+    <div class="brand-icon">🏥</div>
+    <h1>PatientIQ</h1>
+    <p>Clinical Intelligence Platform</p>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">Navigation</div>
+    <a href="/" class="nav-item"><span class="nav-icon">🏠</span> Overview</a>
+    <a href="/predict" class="nav-item"><span class="nav-icon">🔬</span> Risk Prediction</a>
+    <a href="/dashboard" class="nav-item active"><span class="nav-icon">📊</span> Analytics Dashboard</a>
+    <div class="nav-section-label">Dataset</div>
+    <a href="#" class="nav-item"><span class="nav-icon">🗃️</span> UCI Diabetes 130-US</a>
+    <a href="#" class="nav-item"><span class="nav-icon">⚙️</span> Model Info</a>
+  </nav>
+  <div class="sidebar-footer">
+    <p>PatientIQ v1.0 · Built with Flask</p>
+  </div>
+</aside>
+
+<!-- ── Main ── -->
+<main class="main">
+  <div class="topbar">
+    <div class="topbar-title">
+      <h2>Analytics Dashboard</h2>
+      <p>Population-level clinical insights · 101,763 patient records</p>
+    </div>
+    <div class="topbar-badge">
+      <span class="status-dot"></span> Live Analytics
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- KPI Row -->
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <div class="metric-icon green">🏥</div>
+        <div>
+          <div class="metric-value">101,763</div>
+          <div class="metric-label">Total Patients</div>
+          <div class="metric-change up">↑ UCI Dataset</div>
+        </div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-icon red">⚠️</div>
+        <div>
+          <div class="metric-value">{{ stats.readmit_rate }}%</div>
+          <div class="metric-label">30-Day Readmission Rate</div>
+          <div class="metric-change down">↑ 11,357 patients</div>
+        </div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-icon blue">🛏️</div>
+        <div>
+          <div class="metric-value">{{ stats.avg_stay }}</div>
+          <div class="metric-label">Avg Stay (days)</div>
+          <div class="metric-change up">↑ All admissions</div>
+        </div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-icon amber">🔴</div>
+        <div>
+          <div class="metric-value">{{ "{:,}".format(stats.high_risk) }}</div>
+          <div class="metric-label">High Risk Patients</div>
+          <div class="metric-change down">↑ 23% readmission rate</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Risk Tier Cards -->
+    <div class="tier-cards mb-28">
+      <div class="tier-card low">
+        <div class="tier-card-value">{{ "{:,}".format(stats.low_risk) }}</div>
+        <div class="tier-card-label">🟢 Low Risk</div>
+        <div class="tier-card-rate">Readmission Rate ~9%</div>
+      </div>
+      <div class="tier-card medium">
+        <div class="tier-card-value">{{ "{:,}".format(stats.medium_risk) }}</div>
+        <div class="tier-card-label">🟡 Medium Risk</div>
+        <div class="tier-card-rate">Readmission Rate ~12%</div>
+      </div>
+      <div class="tier-card high">
+        <div class="tier-card-value">{{ "{:,}".format(stats.high_risk) }}</div>
+        <div class="tier-card-label">🔴 High Risk</div>
+        <div class="tier-card-rate">Readmission Rate ~23%</div>
+      </div>
+    </div>
+
+    <!-- Row 1: Age + Diagnosis -->
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Readmission Rate by Age Tier</div>
+            <div class="card-subtitle">30-day readmission % by clinical age segment</div>
+          </div>
+          <span class="badge badge-success">Demographic KPI</span>
+        </div>
+        <div class="chart-container">
+          <canvas id="ageChart"></canvas>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Readmission by Primary Diagnosis</div>
+            <div class="card-subtitle">Clinical category breakdown</div>
+          </div>
+          <span class="badge badge-info">Clinical KPI</span>
+        </div>
+        <div class="chart-container">
+          <canvas id="diagChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Row 2: Time in Hospital + Tier Distribution -->
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Readmission Rate vs Hospital Stay</div>
+            <div class="card-subtitle">How length of stay correlates with readmission</div>
+          </div>
+          <span class="badge badge-warning">Utilization KPI</span>
+        </div>
+        <div class="chart-container">
+          <canvas id="timeChart"></canvas>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Patient Risk Tier Distribution</div>
+            <div class="card-subtitle">K-Means segmentation — 3 clinical tiers</div>
+          </div>
+          <span class="badge badge-info">Segmentation</span>
+        </div>
+        <div class="chart-container">
+          <canvas id="tierChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Row 3: Cluster Profiles Table -->
+    <div class="card mb-20">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Clinical Risk Tier Profiles</div>
+          <div class="card-subtitle">Average clinical metrics per K-Means risk segment</div>
+        </div>
+        <span class="badge badge-success">K-Means Clustering</span>
+      </div>
+      <table class="drivers-table" style="width:100%">
+        <thead>
+          <tr>
+            <th>Metric</th>
+            <th style="color:#059669">🟢 Low Risk</th>
+            <th style="color:#d97706">🟡 Medium Risk</th>
+            <th style="color:#dc2626">🔴 High Risk</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% set profile = stats.cluster_profile %}
+          {% set metrics = [
+            ('age_numeric',       'Average Age'),
+            ('time_in_hospital',  'Avg Hospital Stay (days)'),
+            ('num_medications',   'Avg Medications'),
+            ('number_inpatient',  'Avg Prior Inpatient Visits'),
+            ('risk_score',        'Avg Risk Score'),
+            ('readmitted_binary', '30-Day Readmission Rate')
+          ] %}
+          {% for key, label in metrics %}
+          <tr>
+            <td style="font-weight:600">{{ label }}</td>
+            <td>
+              {% if key == 'readmitted_binary' %}
+                {{ "%.1f"|format(profile[key]['Low Risk'] * 100) }}%
+              {% else %}
+                {{ "%.2f"|format(profile[key]['Low Risk']) }}
+              {% endif %}
+            </td>
+            <td>
+              {% if key == 'readmitted_binary' %}
+                {{ "%.1f"|format(profile[key]['Medium Risk'] * 100) }}%
+              {% else %}
+                {{ "%.2f"|format(profile[key]['Medium Risk']) }}
+              {% endif %}
+            </td>
+            <td>
+              {% if key == 'readmitted_binary' %}
+                {{ "%.1f"|format(profile[key]['High Risk'] * 100) }}%
+              {% else %}
+                {{ "%.2f"|format(profile[key]['High Risk']) }}
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Row 4: Business Insights -->
+    <div class="grid-3">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">💡 Key Clinical Finding</div>
+        </div>
+        <div style="font-size:13px;color:var(--text-sec);line-height:1.7;">
+          Patients with <strong style="color:var(--text)">3+ prior inpatient visits</strong> show
+          a readmission rate of <strong style="color:var(--danger)">23.2%</strong> — nearly
+          <strong style="color:var(--text)">3× higher</strong> than low-utilization patients.
+          Prior hospital utilization is the strongest predictor of 30-day readmission.
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">📋 Intervention Recommendation</div>
+        </div>
+        <div style="font-size:13px;color:var(--text-sec);line-height:1.7;">
+          <strong style="color:var(--danger)">High Risk</strong> patients (7,958) should receive
+          <strong style="color:var(--text)">intensive post-discharge follow-up</strong> within 48 hours.
+          Targeting this segment alone addresses <strong style="color:var(--text)">~18%</strong>
+          of all readmissions in the population.
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">📊 Model Performance</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <div style="display:flex;justify-content:space-between;font-size:13px;">
+            <span style="color:var(--text-sec)">Best Model</span>
+            <span style="font-weight:700">XGBoost</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:13px;">
+            <span style="color:var(--text-sec)">ROC-AUC</span>
+            <span style="font-weight:700;color:var(--primary)">0.6702</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:13px;">
+            <span style="color:var(--text-sec)">Recall (Readmitted)</span>
+            <span style="font-weight:700">0.4531</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:13px;">
+            <span style="color:var(--text-sec)">CV ROC-AUC</span>
+            <span style="font-weight:700">0.6598 ± 0.008</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:13px;">
+            <span style="color:var(--text-sec)">Imbalance Handling</span>
+            <span style="font-weight:700">SMOTE + Threshold</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<script>
+const s = {{ stats | tojson }};
+
+// Age Chart
+new Chart(document.getElementById('ageChart'), {
+  type: 'bar',
+  data: {
+    labels: s.age_labels,
+    datasets: [{
+      label: 'Readmission Rate (%)',
+      data: s.age_values,
+      backgroundColor: s.age_values.map(v =>
+        v > 13 ? 'rgba(239,68,68,0.7)' : v > 11 ? 'rgba(245,158,11,0.7)' : 'rgba(16,185,129,0.7)'
+      ),
+      borderRadius: 5, borderWidth: 0,
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      y: { grid: { color: '#f1f5f9' }, ticks: { color: '#64748b', font: { size: 11 } } },
+      x: { grid: { display: false }, ticks: { color: '#64748b', font: { size: 10 } } }
+    }
+  }
+});
+
+// Diagnosis Chart
+new Chart(document.getElementById('diagChart'), {
+  type: 'bar',
+  data: {
+    labels: s.diag_labels,
+    datasets: [{
+      label: 'Readmission Rate (%)',
+      data: s.diag_values,
+      backgroundColor: 'rgba(59,130,246,0.7)',
+      borderRadius: 5, borderWidth: 0,
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    indexAxis: 'y',
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { grid: { color: '#f1f5f9' }, ticks: { color: '#64748b', font: { size: 11 } } },
+      y: { grid: { display: false }, ticks: { color: '#64748b', font: { size: 11 } } }
+    }
+  }
+});
+
+// Time in Hospital Chart
+new Chart(document.getElementById('timeChart'), {
+  type: 'line',
+  data: {
+    labels: s.time_labels,
+    datasets: [{
+      label: 'Readmission Rate (%)',
+      data: s.time_values,
+      borderColor: '#f59e0b',
+      backgroundColor: 'rgba(245,158,11,0.1)',
+      borderWidth: 2,
+      pointBackgroundColor: '#f59e0b',
+      pointRadius: 4,
+      fill: true,
+      tension: 0.4,
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      y: { grid: { color: '#f1f5f9' }, ticks: { color: '#64748b', font: { size: 11 } } },
+      x: { grid: { display: false }, ticks: { color: '#64748b', font: { size: 11 } } }
+    }
+  }
+});
+
+// Tier Donut
+new Chart(document.getElementById('tierChart'), {
+  type: 'doughnut',
+  data: {
+    labels: ['Low Risk', 'Medium Risk', 'High Risk'],
+    datasets: [{
+      data: s.tier_values,
+      backgroundColor: ['#10b981','#f59e0b','#ef4444'],
+      borderWidth: 0,
+      hoverOffset: 8
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    cutout: '60%',
+    plugins: {
+      legend: {
+        position: 'bottom',
+        labels: { color: '#64748b', font: { size: 12 }, padding: 16 }
+      }
+    }
+  }
+});
+</script>
+</body>
+</html>
