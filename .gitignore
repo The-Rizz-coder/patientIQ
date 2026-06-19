@@ -10,3 +10,13 @@ data/diabetic_data_cleaned.csv
 data/diabetic_data_processed.csv
 data/diabetic_data_clustered.csv
 outputs/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Database files
+*.db
+
+# OS files
+.DS_Store
+Thumbs.db
